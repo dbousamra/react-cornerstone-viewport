@@ -48,6 +48,7 @@ class CornerstoneViewport extends Component {
     frameRate: PropTypes.number, // Between 1 and ?
     //
     setViewportActive: PropTypes.func, // Called when viewport should be set to active?
+    setViewportSpecificData: PropTypes.func,
     viewportOverlayComponent: PropTypes.oneOfType([
       PropTypes.string,
       PropTypes.func,
@@ -94,14 +95,9 @@ class CornerstoneViewport extends Component {
   constructor(props) {
     super(props);
 
-    const imageIdIndex = props.imageIdIndex;
-    const imageId = props.imageIds[imageIdIndex];
-
     this.state = {
       // Used for metadata lookup (imagePlane, orientation markers)
       // We can probs grab this once and hold on to? (updated on newImage)
-      imageId,
-      imageIdIndex, // Maybe
       imageProgress: 0,
       isLoading: true,
       numImagesLoaded: 0,
@@ -132,9 +128,9 @@ class CornerstoneViewport extends Component {
       isStackPrefetchEnabled,
       cornerstoneOptions,
       imageIds,
+      imageIdIndex,
       resizeThrottleMs,
     } = this.props;
-    const { imageIdIndex } = this.state;
     const imageId = imageIds[imageIdIndex];
 
     // EVENTS
@@ -326,14 +322,12 @@ class CornerstoneViewport extends Component {
    * @memberof CornerstoneViewport
    */
   getOverlay() {
-    const { viewportOverlayComponent: Component, imageIds } = this.props;
     const {
+      viewportOverlayComponent: Component,
+      imageIds,
       imageIdIndex,
-      scale,
-      windowWidth,
-      windowCenter,
-      isOverlayVisible,
-    } = this.state;
+    } = this.props;
+    const { scale, windowWidth, windowCenter, isOverlayVisible } = this.state;
     const imageId = imageIds[imageIdIndex];
     return (
       imageId &&
@@ -358,9 +352,8 @@ class CornerstoneViewport extends Component {
    * @memberof CornerstoneViewport
    */
   getOrientationMarkersOverlay() {
-    const { imageIds } = this.props;
+    const { imageIds, imageIdIndex } = this.props;
     const {
-      imageIdIndex,
       rotationDegrees,
       isFlippedVertically,
       isFlippedHorizontally,
@@ -589,13 +582,19 @@ class CornerstoneViewport extends Component {
 
   onNewImage = event => {
     const newImageId = event.detail.image.imageId;
-    const newImageIdIndex = this.props.imageIds.indexOf(newImageId);
+    const currentImageIdIndex = this.props.imageIds.indexOf(newImageId);
+    const sopInstanceUid = newImageId.split('/')[
+      newImageId.split('/').findIndex(item => item === 'instances') + 1
+    ];
 
     // TODO: Should we grab and set some imageId specific metadata here?
     // Could prevent cornerstone dependencies in child components.
-    this.setState({
-      imageIdIndex: newImageIdIndex,
-    });
+    if (this.props.setViewportSpecificData) {
+      this.props.setViewportSpecificData({
+        currentImageIdIndex,
+        sopInstanceUid,
+      });
+    }
   };
 
   onImageLoaded = () => {
@@ -667,7 +666,7 @@ class CornerstoneViewport extends Component {
           onInputCallback={this.imageSliderOnInputCallback}
           max={scrollbarMax}
           height={scrollbarHeight}
-          value={this.state.imageIdIndex}
+          value={this.props.imageIdIndex}
         />
         {this.props.children}
       </div>
