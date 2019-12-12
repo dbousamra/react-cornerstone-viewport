@@ -581,11 +581,12 @@ class CornerstoneViewport extends Component {
   };
 
   onNewImage = event => {
-    const newImageId = event.detail.image.imageId;
-    const currentImageIdIndex = this.props.imageIds.indexOf(newImageId);
-    const sopInstanceUid = newImageId.split('/')[
-      newImageId.split('/').findIndex(item => item === 'instances') + 1
-    ];
+    const { imageId } = event.detail.image;
+    const { sopInstanceUid } = cornerstone.metaData.get(
+      'generalImageModule',
+      imageId
+    );
+    const currentImageIdIndex = this.props.imageIds.indexOf(imageId);
 
     // TODO: Should we grab and set some imageId specific metadata here?
     // Could prevent cornerstone dependencies in child components.
